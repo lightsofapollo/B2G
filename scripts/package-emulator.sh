@@ -5,6 +5,11 @@ cd ..
 PRODUCT_OUT=$(get_build_var PRODUCT_OUT)
 HOST_OUT=$(get_build_var HOST_OUT)
 OUT_DIR=$(get_abs_build_var OUT_DIR)
+HOST_OS="$(get_build_var HOST_OS)"
+
+# On emulator-l (and likely greater) we need to include some prebuilts in the final package this typically
+# includes things like libgl related libs.
+EMULATOR_HOST_LIBS_PATH="prebuilts/tools/$HOST_OS-x86/emulator/lib"
 
 EMULATOR_FILES=(\
 	.config \
@@ -24,10 +29,16 @@ EMULATOR_FILES=(\
 	${PRODUCT_OUT}/userdata.img \
 	${PRODUCT_OUT}/ramdisk.img)
 
+
+if [ -d $EMULATOR_HOST_LIBS_PATH ];
+then
+	echo "Including emulator host libs from prebuilt path $EMULATOR_HOST_LIBS_PATH"
+  EMULATOR_FILES+=("$EMULATOR_HOST_LIBS_PATH")
+fi
+
 EMULATOR_ARCHIVE="${OUT_DIR}/emulator.tar.gz"
 
 echo "Creating emulator archive at $EMULATOR_ARCHIVE"
 
 rm -rf $EMULATOR_ARCHIVE
-tar -cvzf $EMULATOR_ARCHIVE --transform 's,^,b2g-distro/,S' --show-transformed-names ${EMULATOR_FILES[@]}
-
+tar -cvzf $EMULATOR_ARCHIVE --transform "s,$EMULATOR_HOST_LIBS_PATH,$HOST_OUT/lib,S"  --transform 's,^,b2g-distro/,S' --show-transformed-names ${EMULATOR_FILES[@]}
